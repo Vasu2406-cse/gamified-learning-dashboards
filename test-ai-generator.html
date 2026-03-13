@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test AI Question Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        h1 {
+            color: #667eea;
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        select, input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover {
+            opacity: 0.9;
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        #result {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            display: none;
+        }
+        .question-text {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        .option {
+            padding: 10px;
+            margin: 8px 0;
+            background: white;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        .correct {
+            background: #e8f5e9;
+            border-left-color: #4caf50;
+        }
+        .info {
+            margin-top: 15px;
+            padding: 10px;
+            background: #e3f2fd;
+            border-radius: 8px;
+            color: #1976d2;
+        }
+        .success {
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 AI Question Generator Test</h1>
+        <p style="text-align: center; color: #666;">Test the AI question generation system</p>
+        
+        <div class="form-group">
+            <label>Category:</label>
+            <select id="category">
+                <option value="Mathematics">Mathematics</option>
+                <option value="Science">Science</option>
+                <option value="History">History</option>
+                <option value="Technology">Technology</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label>Difficulty:</label>
+            <select id="difficulty">
+                <option value="Easy">Easy</option>
+                <option value="Medium">Medium</option>
+                <option value="Hard">Hard</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label>Topic (Optional):</label>
+            <input type="text" id="topic" placeholder="e.g., Algebra, Physics, World War II">
+        </div>
+        
+        <button onclick="generateQuestion()">✨ Generate Question</button>
+        <button onclick="saveQuestion()" id="saveBtn" style="background: #4caf50; display: none;">💾 Save to Database</button>
+        
+        <div id="result"></div>
+        <div id="success" class="success"></div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:8081/api';
+        let currentQuestion = null;
+
+        async function generateQuestion() {
+            const category = document.getElementById('category').value;
+            const difficulty = document.getElementById('difficulty').value;
+            const topic = document.getElementById('topic').value;
+            
+            const btn = event.target;
+            btn.textContent = '⏳ Generating...';
+            btn.disabled = true;
+            
+            try {
+                const response = await fetch(`${API_URL}/ai/generate-question`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ category, difficulty, topic })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to generate question');
+                }
+                
+                currentQuestion = await response.json();
+                displayQuestion(currentQuestion);
+                document.getElementById('saveBtn').style.display = 'block';
+                document.getElementById('success').style.display = 'none';
+            } catch (error) {
+                alert('Error: ' + error.message + '\n\nMake sure the backend server is running on port 8081');
+            } finally {
+                btn.textContent = '✨ Generate Question';
+                btn.disabled = false;
+            }
+        }
+
+        function displayQuestion(question) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'block';
+            
+            resultDiv.innerHTML = `
+                <div class="question-text">Q: ${question.questionText}</div>
+                <div class="option ${question.correctAnswer === 'A' ? 'correct' : ''}">
+                    A) ${question.optionA} ${question.correctAnswer === 'A' ? '✅' : ''}
+                </div>
+                <div class="option ${question.correctAnswer === 'B' ? 'correct' : ''}">
+                    B) ${question.optionB} ${question.correctAnswer === 'B' ? '✅' : ''}
+                </div>
+                <div class="option ${question.correctAnswer === 'C' ? 'correct' : ''}">
+                    C) ${question.optionC} ${question.correctAnswer === 'C' ? '✅' : ''}
+                </div>
+                <div class="option ${question.correctAnswer === 'D' ? 'correct' : ''}">
+                    D) ${question.optionD} ${question.correctAnswer === 'D' ? '✅' : ''}
+                </div>
+                <div class="info">
+                    <strong>Correct Answer:</strong> ${question.correctAnswer}<br>
+                    <strong>Points:</strong> ${question.points}<br>
+                    <strong>Category:</strong> ${question.category ? question.category.name : 'N/A'}
+                </div>
+            `;
+        }
+
+        async function saveQuestion() {
+            if (!currentQuestion) {
+                alert('No question to save!');
+                return;
+            }
+            
+            const btn = document.getElementById('saveBtn');
+            btn.textContent = '💾 Saving...';
+            btn.disabled = true;
+            
+            try {
+                const response = await fetch(`${API_URL}/quiz/questions`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(currentQuestion)
+                });
+                
+                if (response.ok) {
+                    const successDiv = document.getElementById('success');
+                    successDiv.textContent = '✅ Question saved successfully! It will now appear in the quiz.';
+                    successDiv.style.display = 'block';
+                    btn.style.display = 'none';
+                    currentQuestion = null;
+                } else {
+                    alert('Failed to save question');
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            } finally {
+                btn.textContent = '💾 Save to Database';
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
